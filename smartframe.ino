@@ -18,12 +18,12 @@ RTC_DATA_ATTR int bootCount = 0;
 
 //4G doesn't support partial refresh on 750_T7
 //GxEPD2_4G<GxEPD2_750_T7, GxEPD2_750_T7::HEIGHT/2> display(GxEPD2_750_T7(/*CS=5*/ SS, /*DC=*/ 4, /*RST=*/ 21, /*BUSY=*/ 19));
-GxEPD2_BW<GxEPD2_750_T7, GxEPD2_750_T7::HEIGHT/2> display(GxEPD2_750_T7(/*CS=5*/ SS, /*DC=*/ 4, /*RST=*/ 21, /*BUSY=*/ 19));
+GxEPD2_BW < GxEPD2_750_T7, GxEPD2_750_T7::HEIGHT / 2 > display(GxEPD2_750_T7(/*CS=5*/ SS, /*DC=*/ 4, /*RST=*/ 21, /*BUSY=*/ 19));
 
 /* Place Holder for hardcoded
-const char hourCoded[] = "EIGHT";
-const char tenthCoded[] = "FORTY";
-const char minuteCoded[] = "SIX"; */
+  const char hourCoded[] = "EIGHT";
+  const char tenthCoded[] = "FORTY";
+  const char minuteCoded[] = "SIX"; */
 
 const int hOffset = -60;
 const int tOffset = 20;
@@ -31,11 +31,17 @@ const int mOffset = 100;
 
 const int rotation = 3;
 
+const int lineLimit = 35; //Max characters per line for bible verse
+
+String strings[100]; // Max amount of strings anticipated
+String renderContainer[5];
+
+String verseFull = "But, “Let the one who boasts boast in the Lord.” For it is not the one who commends himself who is approved, but the one whom the Lord commends.";
 String verse1 = "Commit to the Lord whatever you do,";
 String verse2 = "and he will establish your plans.";
 String reference = "Proverbs 16:3";
 
-const char *hour[12] = {"ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN", "TWELVE"};
+const char *hour[12] = {"TWELVE", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN"};
 const char *tenth[5] = {"O'", "TWENTY", "THIRTY", "FORTY", "FIFTY"};
 const char *minute[9] = {"ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE"};
 const char *teen[10] = {"TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN", "EIGHTEEN", "NINETEEN"};
@@ -45,74 +51,127 @@ const char sharp[] = "SHARP"; //Special case for when minute is at 00
 ts t;
 int lastMinute = 0;
 
-int xPos(const char* string){
+
+//Split String helper function
+int split(String string, char c)
+{
+  String data = "";
+  int bufferIndex = 0;
+
+  for (int i = 0; i < string.length(); ++i) {
+    char c = string[i];
+    if (c != ' ')
+      data += c;
+    else {
+      data += '\0';
+      strings[bufferIndex++] = data;
+      data = "";
+    }
+  }
+  return bufferIndex;
+}
+
+void parseVerse() {
+  int count = split(verseFull,  ' ');
+  int charCount = 0;
+  int i = 0;
+  for (int j = 0; j < count; ++j)
+  {
+    charCount += strings[j].length();
+    if (charCount >= lineLimit + i * lineLimit) {
+      i++;
+    }
+    renderContainer[i] = renderContainer[i] + " " + strings[j];
+
+    if (strings[j].length() > 0)
+      Serial.println(strings[j]);
+  }
+  for (int i = 0; i < 5; i++) {
+    Serial.println(i);
+    Serial.println(renderContainer[i]);
+  }
+}
+
+int xPos(const char* string) {
   int16_t tbx, tby; uint16_t tbw, tbh;
   display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
   return ((display.width() - tbw) / 2) - tbx;
 }
 
-int yPos(const char* string){
+int xPos(String string) {
+  int16_t tbx, tby; uint16_t tbw, tbh;
+  display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
+  return ((display.width() - tbw) / 2) - tbx;
+}
+
+int yPos(const char* string) {
   int16_t tbx, tby; uint16_t tbw, tbh;
   display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
   return ((display.height() - tbh) / 2) - tby;
 }
 
-void renderPartialTextBox(const char* string,  int offset){
-    //Set up Screen
-    display.setRotation(rotation);
-    int16_t tbx, tby; uint16_t tbw, tbh;
-    //Set Up Window
-    display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
-    display.setPartialWindow(0, ((display.height() - tbh) / 2) + offset, display.width(), tbh);
-    
-    //Render box and text
-    display.firstPage();
-    do
-    {
-      display.setCursor(xPos(string), yPos(string) + offset);
-      display.fillScreen(GxEPD_WHITE);
-      display.setFont(&FuturaBookfont40pt7b);
-      display.setTextColor(GxEPD_BLACK);
-      display.print(string);
-    }while (display.nextPage());
+int yPos(String string) {
+  int16_t tbx, tby; uint16_t tbw, tbh;
+  display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
+  return ((display.height() - tbh) / 2) - tby;
 }
 
-void drawTimePartial(int _hour, int _minute, bool fullUpdate = false){
+void renderPartialTextBox(const char* string,  int offset) {
+  //Set up Screen
+  display.setRotation(rotation);
+  int16_t tbx, tby; uint16_t tbw, tbh;
+  //Set Up Window
+  display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
+  display.setPartialWindow(0, ((display.height() - tbh) / 2) + offset, display.width(), tbh);
 
-    //Do a full refresh every 5 minutes
-    if(_minute % 5 == 0){
-      drawTimeFull();
-      return;
-    }
-    
-    //Draw Hour
-    const char* hString = hour[_hour%12-1];
-    //Draw Tenth, Teen or Sharp
-    const char* tString;
-    if(_minute == 0){ //Set Sharp
-      tString = sharp;
-    }else if (_minute < 10){ //Set "O'" Special Case
-      tString = tenth[0];
-    }else if (_minute >= 10 && _minute <20){//Set Teen
-      tString = teen[_minute%10];
-    }else{
-      tString = tenth[_minute/10-1];
-    }
-    renderPartialTextBox(tString, tOffset);
+  //Render box and text
+  display.firstPage();
+  do
+  {
+    display.setCursor(xPos(string), yPos(string) + offset);
+    display.fillScreen(GxEPD_WHITE);
+    display.setFont(&FuturaBookfont40pt7b);
+    display.setTextColor(GxEPD_BLACK);
+    display.print(string);
+  } while (display.nextPage());
+}
 
-    //Draw Minute
-    const char* mString;
-    if (_minute%10 == 0 || (_minute > 10 && _minute <20)){ //null cases
-      mString = NULL; //null string
-    }else{
-      mString = minute[_minute%10-1];
-    }
+void drawTimePartial(int _hour, int _minute, bool fullUpdate = false) {
 
-    renderPartialTextBox(hString, hOffset);
-    renderPartialTextBox(tString, tOffset);
-    if (mString != NULL){
-      renderPartialTextBox(mString, mOffset);
-    }
+  //Do a full refresh every 5 minutes
+  if (_minute % 5 == 0) {
+    drawTimeFull();
+    return;
+  }
+
+  //Draw Hour
+  const char* hString = hour[_hour % 12];
+  //Draw Tenth, Teen or Sharp
+  const char* tString;
+  if (_minute == 0) { //Set Sharp
+    tString = sharp;
+  } else if (_minute < 10) { //Set "O'" Special Case
+    tString = tenth[0];
+  } else if (_minute >= 10 && _minute < 20) { //Set Teen
+    tString = teen[_minute % 10];
+  } else {
+    tString = tenth[_minute / 10 - 1];
+  }
+  renderPartialTextBox(tString, tOffset);
+
+  //Draw Minute
+  const char* mString;
+  if (_minute % 10 == 0 || (_minute > 10 && _minute < 20)) { //null cases
+    mString = NULL; //null string
+  } else {
+    mString = minute[_minute % 10 - 1];
+  }
+
+  renderPartialTextBox(hString, hOffset);
+  renderPartialTextBox(tString, tOffset);
+  if (mString != NULL) {
+    renderPartialTextBox(mString, mOffset);
+  }
 }
 
 
@@ -121,68 +180,75 @@ void drawTimeFull()
   DS3231_get(&t);
   int _hour = t.hour;
   int _minute = t.min;
-//  int _hour = 9;
-//  int _minute = 30;
+  //  int _hour = 9;
+  //  int _minute = 30;
   display.setRotation(rotation);
-  
+
   display.setFullWindow();
   display.fillScreen(GxEPD_WHITE);
   display.firstPage();
   do
   {
-    
+
     //Set up Screen
     display.fillScreen(GxEPD_WHITE);
     display.setFont(&FuturaBookfont40pt7b);
     display.setTextColor(GxEPD_BLACK);
-    display.drawBitmap(0,80, gImage_header, 480, 181, GxEPD_BLACK);  // Print Subscribers symbol (POSITION_X, POSITION_Y, IMAGE_NAME, IMAGE_WIDTH, IMAGE_HEIGHT, COLOR);
+    display.drawBitmap(0, 80, gImage_header, 480, 181, GxEPD_BLACK); // Print Subscribers symbol (POSITION_X, POSITION_Y, IMAGE_NAME, IMAGE_WIDTH, IMAGE_HEIGHT, COLOR);
     display.drawLine(120, 280,   360, 280,   GxEPD_BLACK);  // Draw line (x0,y0,x1,y1,color)
     display.drawLine(120, 560,   360, 560,   GxEPD_BLACK);  // Draw line (x0,y0,x1,y1,color)
     //Draw Hour
-    display.setCursor(xPos(hour[_hour%12-1]), yPos(hour[_hour%12-1]) + hOffset);
-    display.print(hour[_hour%12-1]);
+    display.setCursor(xPos(hour[_hour % 12]), yPos(hour[_hour % 12]) + hOffset);
+    display.print(hour[_hour % 12]);
 
-    if(_minute == 0){
+    if (_minute == 0) {
       display.setCursor(xPos("SHARP"), yPos("SHARP") + tOffset);
       display.print("SHARP");
     }
-    else if (_minute > 10 && _minute <20){
-      display.setCursor(xPos(teen[_minute%10-1]), yPos(teen[_minute%10-1]) + tOffset);
-      display.print(teen[_minute%10-1]);     
-    }else{
-      if (_minute < 10 ){
+    else if (_minute > 10 && _minute < 20) {
+      display.setCursor(xPos(teen[_minute % 10 - 1]), yPos(teen[_minute % 10 - 1]) + tOffset);
+      display.print(teen[_minute % 10 - 1]);
+    } else {
+      if (_minute < 10 ) {
         display.setCursor(xPos(tenth[0]), yPos(tenth[0]) + tOffset);
-        display.print(tenth[0]); 
-      }else{
-        display.setCursor(xPos(tenth[_minute/10-1]), yPos(tenth[_minute/10-1]) + tOffset);
-        display.print(tenth[_minute/10-1]); 
+        display.print(tenth[0]);
+      } else {
+        display.setCursor(xPos(tenth[_minute / 10 - 1]), yPos(tenth[_minute / 10 - 1]) + tOffset);
+        display.print(tenth[_minute / 10 - 1]);
       }
-      if(_minute%10 != 0){
-        display.setCursor(xPos(minute[_minute%10-1]), yPos(minute[_minute%10-1]) + mOffset);
-        display.print(minute[_minute%10-1]);
+      if (_minute % 10 != 0) {
+        display.setCursor(xPos(minute[_minute % 10 - 1]), yPos(minute[_minute % 10 - 1]) + mOffset);
+        display.print(minute[_minute % 10 - 1]);
       }
     }
-    
+
     display.setFont(&futuralight12pt7b);
-    display.setCursor(60, 620);
-    display.print(verse1);
-    display.setCursor(85, 650);
-    display.print(verse2);
-    display.setCursor(175, 680);
-    display.print(reference);
+//    display.setCursor(60, 620);
+//    display.print(verse1);
+//    display.setCursor(85, 650);
+//    display.print(verse2);
+//    display.setCursor(175, 680);
+//    display.print(reference);
+    Serial.println("xPos:");
+    Serial.println(xPos(renderContainer[0]));
+    display.setCursor(xPos(renderContainer[0]), yPos(renderContainer[0]) + 200);
+    display.print(renderContainer[0]);
+    display.setCursor(xPos(renderContainer[1]), yPos(renderContainer[1]) + 230);
+    display.print(renderContainer[1]);  
+
   }
   while (display.nextPage());
-  
+
   Serial.println("Draw Time Complete");
 }
 
- 
+
 void setup() {
   delay(100);
   display.init(115200);
 
-  
-  
+  parseVerse();
+
   //Draw frame header
   display.setRotation(rotation);
 
@@ -200,12 +266,12 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   DS3231_get(&t);
-  if (t.min != lastMinute){
+  if (t.min != lastMinute) {
     //drawFrame();
     drawTimePartial(t.hour, t.min);
     lastMinute = t.min;
   }
   delay(5000);
-//  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-//  esp_deep_sleep_start();
+  //  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  //  esp_deep_sleep_start();
 }
