@@ -60,11 +60,12 @@ void renderPartialTextBox(const char* string,  int offset){
     //Set Up Window
     display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
     display.setPartialWindow(0, ((display.height() - tbh) / 2) + offset, display.width(), tbh);
-    display.setCursor(xPos(string), yPos(string) + offset);
+    
     //Render box and text
     display.firstPage();
     do
     {
+      display.setCursor(xPos(string), yPos(string) + offset);
       display.fillScreen(GxEPD_WHITE);
       display.setFont(&FuturaBookfont40pt7b);
       display.setTextColor(GxEPD_BLACK);
@@ -72,12 +73,16 @@ void renderPartialTextBox(const char* string,  int offset){
     }while (display.nextPage());
 }
 
-void drawTimePartial(int _hour, int _minute){
+void drawTimePartial(int _hour, int _minute, bool fullUpdate = false){
+
+    //Do a full refresh every 5 minutes
+    if(_minute%5 == 0){
+      drawTimeFull();
+      return;
+    }
     
     //Draw Hour
     const char* hString = hour[_hour%12-1];
-    renderPartialTextBox(hString, hOffset);
-
     //Draw Tenth, Teen or Sharp
     const char* tString;
     if(_minute == 0){ //Set Sharp
@@ -98,15 +103,27 @@ void drawTimePartial(int _hour, int _minute){
     }else{
       mString = minute[_minute%10-1];
     }
+
+    renderPartialTextBox(hString, hOffset);
+    renderPartialTextBox(tString, tOffset);
     if (mString != NULL){
       renderPartialTextBox(mString, mOffset);
     }
-    
-    
 }
 
 
-void drawTime(int _hour, int _minute){
+void drawTimeFull()
+{
+  DS3231_get(&t);
+  int _hour = t.hour;
+  int _minute = t.min;
+  display.setRotation(rotation);
+  
+  display.setFullWindow();
+  display.fillScreen(GxEPD_WHITE);
+  display.firstPage();
+  do
+  {
     
     //Set up Screen
     display.fillScreen(GxEPD_WHITE);
@@ -115,125 +132,64 @@ void drawTime(int _hour, int _minute){
     display.drawBitmap(0,80, gImage_header, 480, 181, GxEPD_BLACK);  // Print Subscribers symbol (POSITION_X, POSITION_Y, IMAGE_NAME, IMAGE_WIDTH, IMAGE_HEIGHT, COLOR);
     display.drawLine(120, 275,   360, 275,   GxEPD_BLACK);  // Draw line (x0,y0,x1,y1,color)
     //Draw Hour
-    display.setCursor(xPos(hour[_hour%12-1]), yPos(hour[_hour%12-1]) - 60);
+    display.setCursor(xPos(hour[_hour%12-1]), yPos(hour[_hour%12-1]) + hOffset);
     display.print(hour[_hour%12-1]);
 
     if(_minute == 0){
-      display.setCursor(xPos("SHARP"), yPos("SHARP"));
+      display.setCursor(xPos("SHARP"), yPos("SHARP") + hOffset);
       display.print("SHARP");
     }
     else if (_minute > 10 && _minute <20){
-      display.setCursor(xPos(teen[_minute%10-1]), yPos(teen[_minute%10-1]) + 20);
+      display.setCursor(xPos(teen[_minute%10-1]), yPos(teen[_minute%10-1]) + tOffset);
       display.print(teen[_minute%10-1]);     
     }else{
       if (_minute < 10 ){
-        display.setCursor(xPos(tenth[0]), yPos(tenth[0]) + 20);
+        display.setCursor(xPos(tenth[0]), yPos(tenth[0]) + tOffset);
         display.print(tenth[0]); 
       }else{
-        display.setCursor(xPos(tenth[_minute/10-1]), yPos(tenth[_minute/10-1]) + 20);
+        display.setCursor(xPos(tenth[_minute/10-1]), yPos(tenth[_minute/10-1]) + tOffset);
         display.print(tenth[_minute/10-1]); 
       }
       
-      display.setCursor(xPos(minute[_minute% 
-       10-1]), yPos(minute[_minute%10-1]) + 100);
+      display.setCursor(xPos(minute[_minute%10-1]), yPos(minute[_minute%10-1]) + mOffset);
       display.print(minute[_minute%10-1]);
     }
-
-    
-    
-}
-
-void drawFrame()
-{
-  DS3231_get(&t);
-  Serial.println("Draw Time");
-  display.setRotation(rotation);
-  
-  display.setFullWindow();
-  //display.setPartialWindow(0, 240, display.width(), 280);
-  display.fillScreen(GxEPD_WHITE);
-  display.firstPage();
-  do
-  {
-    
-    //drawTimePartial(t.hour, t.min);
-    drawTime(t.hour, t.min);
-//    //Draw verse
-//    display.setFont(&FreeSans9pt7b);
-//    display.setTextColor(GxEPD_BLACK);
-//    display.setCursor(10, 560);
-    //display.print(verse);
   }
   while (display.nextPage());
   
   Serial.println("Draw Time Complete");
 }
 
-void testPartial(char* string, int offset){
-  //DS3231_get(&t);
-  int16_t tbx, tby; uint16_t tbw, tbh;
-  display.setRotation(rotation);
-  display.setFont(&FuturaBookfont40pt7b);
-  display.setTextColor(GxEPD_BLACK);
-  display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
-  Serial.println(((display.width() - tbw) / 2) - tbx);
-  Serial.println(((display.height() - tbh) / 2) - tby);
-  Serial.println(tbw);
-  Serial.println(tbh);
-  //display.setPartialWindow(((display.width() - tbw) / 2) - tbx, ((display.height() - tbh) / 2) + offset, tbw, tbh);
-  display.setPartialWindow(((display.width() - tbw) / 2), ((display.height() - tbh) / 2) + offset, display.width(), tbh);
-  
-  display.firstPage();
-  do
-  {
-    display.fillScreen(GxEPD_BLACK);
-    display.setCursor(((display.width() - tbw) / 2) - tbx, ((display.height() - tbh) / 2) - tby + offset);
-    display.setFont(&FuturaBookfont40pt7b);
-    display.setTextColor(GxEPD_WHITE);
-    display.print(string);
-  }while (display.nextPage());
-}
-
  
 void setup() {
-  // put your setup code here, to run once:
-  
   delay(100);
   display.init(115200);
 
-  Serial.println("drawing bitmap");
+  
   
   //Draw frame header
   display.setRotation(rotation);
-  display.firstPage();
-  do
-  {
-    display.drawBitmap(0,100, gImage_header, 480, 181, GxEPD_BLACK);  // Print Subscribers symbol (POSITION_X, POSITION_Y, IMAGE_NAME, IMAGE_WIDTH, IMAGE_HEIGHT, COLOR);
-  }while (display.nextPage());
-  //display.epd2.clearScreen();
-//  testPartial("TWELVE", 0);
-//  delay(5000);
-//  testPartial("TEN", 100);
-//
-//  delay(5000);
-//  testPartial("ELEVEN", 0);
-//  delay(5000);
-//  testPartial("FIVE", 100);
-  
-  //delay(10000);
+
+
   Wire.begin(22, 15);
   DS3231_init(DS3231_INTCN);
   DS3231_get(&t);
-  //drawTimePartial(t.hour, t.min);
+
+  //Draw a full frame on startup
+  lastMinute = t.min;
+  drawTimeFull();
+  delay(10000);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  DS3231_get(&t);
-  if (t.min != lastMinute){
-    drawFrame();
-    lastMinute = t.min;
-  }
+//  DS3231_get(&t);
+//  if (t.min != lastMinute){
+//    //drawFrame();
+//    drawTimePartial(t.hour, t.min);
+//    lastMinute = t.min;
+//  }
+//  delay(2000);
 //  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 //  esp_deep_sleep_start();
 }
