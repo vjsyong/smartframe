@@ -5,6 +5,8 @@
 #include <Fonts/FreeMonoBold24pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
 #include "futura.h"
+#include "futura8.h"
+#include "futura12.h"
 #include "header.h"
 #include <ds3231.h>
 #include <Wire.h>
@@ -29,7 +31,9 @@ const int mOffset = 100;
 
 const int rotation = 3;
 
-const char verse[] = "Commit to the Lord whatever you do, and he will establish your plans.";
+String verse1 = "Commit to the Lord whatever you do,";
+String verse2 = "and he will establish your plans.";
+String reference = "Proverbs 16:3";
 
 const char *hour[12] = {"ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN", "TWELVE"};
 const char *tenth[5] = {"O'", "TWENTY", "THIRTY", "FORTY", "FIFTY"};
@@ -132,7 +136,8 @@ void drawTimeFull()
     display.setFont(&FuturaBookfont40pt7b);
     display.setTextColor(GxEPD_BLACK);
     display.drawBitmap(0,80, gImage_header, 480, 181, GxEPD_BLACK);  // Print Subscribers symbol (POSITION_X, POSITION_Y, IMAGE_NAME, IMAGE_WIDTH, IMAGE_HEIGHT, COLOR);
-    display.drawLine(120, 275,   360, 275,   GxEPD_BLACK);  // Draw line (x0,y0,x1,y1,color)
+    display.drawLine(120, 280,   360, 280,   GxEPD_BLACK);  // Draw line (x0,y0,x1,y1,color)
+    display.drawLine(120, 560,   360, 560,   GxEPD_BLACK);  // Draw line (x0,y0,x1,y1,color)
     //Draw Hour
     display.setCursor(xPos(hour[_hour%12-1]), yPos(hour[_hour%12-1]) + hOffset);
     display.print(hour[_hour%12-1]);
@@ -157,6 +162,14 @@ void drawTimeFull()
         display.print(minute[_minute%10-1]);
       }
     }
+    
+    display.setFont(&futuralight12pt7b);
+    display.setCursor(60, 620);
+    display.print(verse1);
+    display.setCursor(85, 650);
+    display.print(verse2);
+    display.setCursor(175, 680);
+    display.print(reference);
   }
   while (display.nextPage());
   
