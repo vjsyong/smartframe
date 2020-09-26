@@ -33,7 +33,7 @@ const char verse[] = "Commit to the Lord whatever you do, and he will establish 
 
 const char *hour[12] = {"ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN", "TWELVE"};
 const char *tenth[5] = {"O'", "TWENTY", "THIRTY", "FORTY", "FIFTY"};
-const char *minute[10] = {"ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN"};
+const char *minute[9] = {"ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE"};
 const char *teen[10] = {"TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN", "EIGHTEEN", "NINETEEN"};
 const char sharp[] = "SHARP"; //Special case for when minute is at 00
 
@@ -76,7 +76,7 @@ void renderPartialTextBox(const char* string,  int offset){
 void drawTimePartial(int _hour, int _minute, bool fullUpdate = false){
 
     //Do a full refresh every 5 minutes
-    if(_minute%5 == 0){
+    if(_minute % 5 == 0){
       drawTimeFull();
       return;
     }
@@ -117,6 +117,8 @@ void drawTimeFull()
   DS3231_get(&t);
   int _hour = t.hour;
   int _minute = t.min;
+//  int _hour = 9;
+//  int _minute = 30;
   display.setRotation(rotation);
   
   display.setFullWindow();
@@ -136,7 +138,7 @@ void drawTimeFull()
     display.print(hour[_hour%12-1]);
 
     if(_minute == 0){
-      display.setCursor(xPos("SHARP"), yPos("SHARP") + hOffset);
+      display.setCursor(xPos("SHARP"), yPos("SHARP") + tOffset);
       display.print("SHARP");
     }
     else if (_minute > 10 && _minute <20){
@@ -150,9 +152,10 @@ void drawTimeFull()
         display.setCursor(xPos(tenth[_minute/10-1]), yPos(tenth[_minute/10-1]) + tOffset);
         display.print(tenth[_minute/10-1]); 
       }
-      
-      display.setCursor(xPos(minute[_minute%10-1]), yPos(minute[_minute%10-1]) + mOffset);
-      display.print(minute[_minute%10-1]);
+      if(_minute%10 != 0){
+        display.setCursor(xPos(minute[_minute%10-1]), yPos(minute[_minute%10-1]) + mOffset);
+        display.print(minute[_minute%10-1]);
+      }
     }
   }
   while (display.nextPage());
@@ -183,13 +186,13 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-//  DS3231_get(&t);
-//  if (t.min != lastMinute){
-//    //drawFrame();
-//    drawTimePartial(t.hour, t.min);
-//    lastMinute = t.min;
-//  }
-//  delay(2000);
+  DS3231_get(&t);
+  if (t.min != lastMinute){
+    //drawFrame();
+    drawTimePartial(t.hour, t.min);
+    lastMinute = t.min;
+  }
+  delay(5000);
 //  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 //  esp_deep_sleep_start();
 }
