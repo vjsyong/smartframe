@@ -5,6 +5,7 @@
 #include <Fonts/FreeMonoBold24pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
 #include "futura.h"
+#include "header.h"
 #include <ds3231.h>
 #include <Wire.h>
 
@@ -22,9 +23,11 @@ const char hourCoded[] = "EIGHT";
 const char tenthCoded[] = "FORTY";
 const char minuteCoded[] = "SIX"; */
 
-const int hOffset = -80;
-const int tOffset = 0;
-const int mOffset = 80;
+const int hOffset = -60;
+const int tOffset = 20;
+const int mOffset = 100;
+
+const int rotation = 3;
 
 const char verse[] = "Commit to the Lord whatever you do, and he will establish your plans.";
 
@@ -36,6 +39,7 @@ const char sharp[] = "SHARP"; //Special case for when minute is at 00
 
 //Time Struct
 ts t;
+int lastMinute = 0;
 
 int xPos(const char* string){
   int16_t tbx, tby; uint16_t tbw, tbh;
@@ -51,7 +55,7 @@ int yPos(const char* string){
 
 void renderPartialTextBox(const char* string,  int offset){
     //Set up Screen
-
+    display.setRotation(rotation);
     int16_t tbx, tby; uint16_t tbw, tbh;
     //Set Up Window
     display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
@@ -108,9 +112,10 @@ void drawTime(int _hour, int _minute){
     display.fillScreen(GxEPD_WHITE);
     display.setFont(&FuturaBookfont40pt7b);
     display.setTextColor(GxEPD_BLACK);
-
+    display.drawBitmap(0,80, gImage_header, 480, 181, GxEPD_BLACK);  // Print Subscribers symbol (POSITION_X, POSITION_Y, IMAGE_NAME, IMAGE_WIDTH, IMAGE_HEIGHT, COLOR);
+    display.drawLine(120, 275,   360, 275,   GxEPD_BLACK);  // Draw line (x0,y0,x1,y1,color)
     //Draw Hour
-    display.setCursor(xPos(hour[_hour%12-1]), yPos(hour[_hour%12-1]) - 80);
+    display.setCursor(xPos(hour[_hour%12-1]), yPos(hour[_hour%12-1]) - 60);
     display.print(hour[_hour%12-1]);
 
     if(_minute == 0){
@@ -118,18 +123,19 @@ void drawTime(int _hour, int _minute){
       display.print("SHARP");
     }
     else if (_minute > 10 && _minute <20){
-      display.setCursor(xPos(teen[_minute%10-1]), yPos(teen[_minute%10-1]));
+      display.setCursor(xPos(teen[_minute%10-1]), yPos(teen[_minute%10-1]) + 20);
       display.print(teen[_minute%10-1]);     
     }else{
       if (_minute < 10 ){
-        display.setCursor(xPos(tenth[0]), yPos(tenth[0]));
+        display.setCursor(xPos(tenth[0]), yPos(tenth[0]) + 20);
         display.print(tenth[0]); 
       }else{
-        display.setCursor(xPos(tenth[_minute/10-1]), yPos(tenth[_minute/10-1]));
+        display.setCursor(xPos(tenth[_minute/10-1]), yPos(tenth[_minute/10-1]) + 20);
         display.print(tenth[_minute/10-1]); 
       }
       
-      display.setCursor(xPos(minute[_minute%10-1]), yPos(minute[_minute%10-1]) + 80);
+      display.setCursor(xPos(minute[_minute% 
+       10-1]), yPos(minute[_minute%10-1]) + 100);
       display.print(minute[_minute%10-1]);
     }
 
@@ -141,7 +147,7 @@ void drawFrame()
 {
   DS3231_get(&t);
   Serial.println("Draw Time");
-  display.setRotation(3);
+  display.setRotation(rotation);
   
   display.setFullWindow();
   //display.setPartialWindow(0, 240, display.width(), 280);
@@ -149,12 +155,13 @@ void drawFrame()
   display.firstPage();
   do
   {
+    
     //drawTimePartial(t.hour, t.min);
     drawTime(t.hour, t.min);
-    //Draw verse
-    display.setFont(&FreeSans9pt7b);
-    display.setTextColor(GxEPD_BLACK);
-    display.setCursor(10, 560);
+//    //Draw verse
+//    display.setFont(&FreeSans9pt7b);
+//    display.setTextColor(GxEPD_BLACK);
+//    display.setCursor(10, 560);
     //display.print(verse);
   }
   while (display.nextPage());
@@ -165,7 +172,7 @@ void drawFrame()
 void testPartial(char* string, int offset){
   //DS3231_get(&t);
   int16_t tbx, tby; uint16_t tbw, tbh;
-  display.setRotation(3);
+  display.setRotation(rotation);
   display.setFont(&FuturaBookfont40pt7b);
   display.setTextColor(GxEPD_BLACK);
   display.getTextBounds(string, 0, 0, &tbx, &tby, &tbw, &tbh);
@@ -193,7 +200,16 @@ void setup() {
   
   delay(100);
   display.init(115200);
+
+  Serial.println("drawing bitmap");
   
+  //Draw frame header
+  display.setRotation(rotation);
+  display.firstPage();
+  do
+  {
+    display.drawBitmap(0,100, gImage_header, 480, 181, GxEPD_BLACK);  // Print Subscribers symbol (POSITION_X, POSITION_Y, IMAGE_NAME, IMAGE_WIDTH, IMAGE_HEIGHT, COLOR);
+  }while (display.nextPage());
   //display.epd2.clearScreen();
 //  testPartial("TWELVE", 0);
 //  delay(5000);
@@ -204,13 +220,20 @@ void setup() {
 //  delay(5000);
 //  testPartial("FIVE", 100);
   
+  //delay(10000);
   Wire.begin(22, 15);
   DS3231_init(DS3231_INTCN);
+  DS3231_get(&t);
+  //drawTimePartial(t.hour, t.min);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  drawFrame();
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  esp_deep_sleep_start();
+  DS3231_get(&t);
+  if (t.min != lastMinute){
+    drawFrame();
+    lastMinute = t.min;
+  }
+//  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+//  esp_deep_sleep_start();
 }
