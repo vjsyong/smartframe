@@ -2,6 +2,8 @@
 
 Smartframe is a wifi connected e paper display insided a photo frame to make it blend in with other desk decorations.
 
+![image](https://github.com/vjsyong/smartframe/blob/master/images/example.jpg)
+
 ## Introduction
 So you're an aspiring engineer, and you meet a girl you really like. You may not be the best at verbally expressing your feelings or affections for her, what do you do? You develop a product for her. Nothing says "I really like you" more than  designing a custom built smart photo frame that has fancy wifi functions that pulls inspirations from the web but at the same time blends in with the rest of the table decor.  
 
