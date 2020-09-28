@@ -56,7 +56,7 @@ Please install these libraries from the Arduino library manager or the Platform.
 
 License
 ----
-MIT
+GNU General Public License v3.0
 
 **Go make your guy or girl happy now.**
 
