@@ -9,6 +9,7 @@
 #include "futura12.h"
 #include "header.h"
 #include "nowifi.h"
+#include "message.h"
 #include <ds3231.h>
 #include <Wire.h>
 #include <WiFi.h>
@@ -310,10 +311,17 @@ void setup() {
 
   
 
-  //Draw frame header
+  //Draw message
   display.setRotation(rotation);
 
-
+  display.setFullWindow();
+  display.fillScreen(GxEPD_WHITE);
+  display.firstPage();
+  do
+  {
+    display.drawBitmap(0, 150, gImage_message, 480, 468, GxEPD_BLACK); 
+  }while(display.nextPage());
+  
   Wire.begin(27, 26);
   DS3231_init(DS3231_INTCN);
   DS3231_get(&t);
@@ -336,6 +344,7 @@ void setup() {
       Serial.println("IP address: ");
       Serial.println(WiFi.localIP());
   }
+  delay(10000);
 
 
   getVerseFromAPI();
